@@ -14,7 +14,7 @@ const seedModel = async (modelName, model, plugin = null) => {
     const numSeed = process.env.SEED_NUM_ITEMS || 5;
     const defaultPass = process.env.SEED_DEFAULT_USER_PASSWORD || "password";
     for (let i = 0; i < numSeed; i++) {
-        const seedData = fakeModel(modelName, model);
+        const seedData = await fakeModel(modelName, model);
         if (modelName === "user") {
             seedData.role = 1;
             seedData.confirmed = true;
@@ -167,14 +167,33 @@ const persistSeedOutput = async () => {
         fs.mkdirSync(seedOutputFolder);
     }
 
+    if (fs.existsSync(`${seedOutputFolder}/seed_output_full.json`)) {
+        const fileContent = fs.readFileSync(
+            `${seedOutputFolder}/seed_output_full.json`,
+            "utf8"
+        );
+
+        const previousSeedOutput = JSON.parse(fileContent);
+
+        for (const key in seedAllIds) {
+            if (!Array.isArray(seedAllIds[key])) continue;
+            previousSeedOutput[key] = [
+                ...(previousSeedOutput[key] || []),
+                ...seedAllIds[key],
+            ];
+        }
+
+        fs.writeFileSync(
+            `${seedOutputFolder}/seed_output_full.json`,
+            JSON.stringify(previousSeedOutput)
+        );
+    }
+
     fs.writeFileSync(
         `${seedOutputFolder}/seed_output_default.json`,
         JSON.stringify(seedDefaultIds)
     );
-    fs.writeFileSync(
-        `${seedOutputFolder}/seed_output_full.json`,
-        JSON.stringify(seedAllIds)
-    );
+
     strapi.log.info(
         `Persisted seed output to ${seedOutputFolder}/seed_output_default.json & ${seedOutputFolder}/seed_output_full.json`
     );

@@ -4,11 +4,50 @@ const { faker } = require("@faker-js/faker");
 const axios = require("axios");
 
 module.exports = {
-    fakeAttr(attrName, attr, resultSoFar = {}, modelAttrs = {}) {
+    async fakeAttr(
+        attrName,
+        attr,
+        resultSoFar = {},
+        modelAttrs = {},
+        modelName
+    ) {
         if (attrName in resultSoFar) {
             return resultSoFar[attrName];
         }
         const anl = attrName.toLowerCase();
+
+        if (
+            attrName === "createdAt" ||
+            attrName === "updatedAt" ||
+            attrName === "publishedAt" ||
+            attrName === "deletedAt" ||
+            attrName === "createdBy" ||
+            attrName === "updatedBy" ||
+            attrName === "publishedBy" ||
+            attrName === "deletedBy" ||
+            attrName === "createdById" ||
+            attrName === "provider" ||
+            attrName === "resetPasswordToken" ||
+            attrName === "confirmationToken" ||
+            attr.type === "relation"
+        ) {
+            return null;
+        }
+
+        if (attrName === "role") {
+            return 1;
+        }
+
+        const iaResult = await generateFakeValueByIA(
+            attrName,
+            attr.type,
+            modelName
+        );
+
+        if (iaResult) {
+            return clearStrings(iaResult) || null;
+        }
+
         switch (attr.type) {
             case "string":
                 switch (anl) {
@@ -158,18 +197,18 @@ module.exports = {
                 return {};
         }
 
-        // const iaResult = await generateFakeValueByIA(attrName, attr.type);
         return null;
     },
 
-    fakeModel(modelName, model) {
+    async fakeModel(modelName, model) {
         const result = {};
         for (const [attrName, attr] of Object.entries(model.attributes)) {
-            const fakedAttributeVal = module.exports.fakeAttr(
+            const fakedAttributeVal = await module.exports.fakeAttr(
                 attrName,
                 attr,
                 result,
-                model.attributes
+                model.attributes,
+                modelName
             );
             if (fakedAttributeVal !== null && fakedAttributeVal !== undefined) {
                 result[attrName] = fakedAttributeVal;
@@ -179,27 +218,47 @@ module.exports = {
     },
 };
 
-// const generateFakeValueByIA = async (attrName, attrType) => {
-//     const prompt = `Quero gerar um valor de exemplo para um campo de nome "${attrName}" e tipo "${attrType}". Responda com apenas o valor direto, sem explicações.`;
+const generateFakeValueByIA = async (attrName, attrType, modelName) => {
+    const prompt = `Quero gerar um valor de exemplo para um campo de nome ${attrName} e tipo ${attrType} que faz parte do model ${modelName}. Responda com apenas o valor direto, sem explicações. Se for string não coloque aspas.`;
 
-//     try {
-//         const response = await axios.post(
-//             "https://openrouter.ai/api/v1/chat/completions",
-//             {
-//                 model: "mistralai/mistral-7b-instruct",
-//                 messages: [{ role: "user", content: prompt }],
-//             },
-//             {
-//                 headers: {
-//                     Authorization: `Bearer ${process.env.SEED_AI_API_KEY}`,
-//                     "Content-Type": "application/json",
-//                 },
-//             }
-//         );
+    try {
+        const response = await axios.post(
+            "http://localhost:11434/api/generate",
+            {
+                model: "llama3.2",
+                prompt: prompt,
+                stream: false,
+                temperature: 0.0,
+                top_p: 1.0,
+                top_k: 1,
+                presence_penalty: 0,
+                frequency_penalty: 0,
+                repeat_penalty: 1.0,
+                stop: ["\n", "User:"],
+                seed: 42,
+                num_predict: 5,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.SEED_AI_API_KEY}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
 
-//         return response.data.choices?.[0]?.message?.content?.trim();
-//     } catch (err) {
-//         console.error("Erro na IA:", err?.response?.data || err.message);
-//         return null;
-//     }
-// };
+        return response.data.response.trim().replace(/^["']|["']$/g, "");
+    } catch (err) {
+        console.error("Erro na IA:", err?.response?.data || err.message);
+        return null;
+    }
+};
+
+const clearStrings = (str) => {
+    if (typeof str !== "string") return str;
+    return str
+        .replace(/\\n/g, "")
+        .replace(/\\t/g, "")
+        .replace(/\\r/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+};
