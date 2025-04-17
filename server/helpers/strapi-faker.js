@@ -16,38 +16,6 @@ module.exports = {
         }
         const anl = attrName.toLowerCase();
 
-        if (
-            attrName === "createdAt" ||
-            attrName === "updatedAt" ||
-            attrName === "publishedAt" ||
-            attrName === "deletedAt" ||
-            attrName === "createdBy" ||
-            attrName === "updatedBy" ||
-            attrName === "publishedBy" ||
-            attrName === "deletedBy" ||
-            attrName === "createdById" ||
-            attrName === "provider" ||
-            attrName === "resetPasswordToken" ||
-            attrName === "confirmationToken" ||
-            attr.type === "relation"
-        ) {
-            return null;
-        }
-
-        if (attrName === "role") {
-            return 1;
-        }
-
-        const iaResult = await generateFakeValueByIA(
-            attrName,
-            attr.type,
-            modelName
-        );
-
-        if (iaResult) {
-            return clearStrings(iaResult) || null;
-        }
-
         switch (attr.type) {
             case "string":
                 switch (anl) {
@@ -197,7 +165,35 @@ module.exports = {
                 return {};
         }
 
-        return null;
+        if (
+            attrName === "createdAt" ||
+            attrName === "updatedAt" ||
+            attrName === "publishedAt" ||
+            attrName === "deletedAt" ||
+            attrName === "createdBy" ||
+            attrName === "updatedBy" ||
+            attrName === "publishedBy" ||
+            attrName === "deletedBy" ||
+            attrName === "createdById" ||
+            attrName === "provider" ||
+            attrName === "resetPasswordToken" ||
+            attrName === "confirmationToken" ||
+            attr.type === "relation"
+        ) {
+            return null;
+        }
+
+        if (attrName === "role") {
+            return 1;
+        }
+
+        const iaResult = await generateFakeValueByIA(
+            attrName,
+            attr.type,
+            modelName
+        );
+
+        return clearStrings(iaResult) || null;
     },
 
     async fakeModel(modelName, model) {

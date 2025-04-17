@@ -187,6 +187,11 @@ const persistSeedOutput = async () => {
             `${seedOutputFolder}/seed_output_full.json`,
             JSON.stringify(previousSeedOutput)
         );
+    } else {
+        fs.writeFileSync(
+            `${seedOutputFolder}/seed_output_full.json`,
+            JSON.stringify(seedAllIds)
+        );
     }
 
     fs.writeFileSync(
